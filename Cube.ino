@@ -102,6 +102,19 @@ const uint16_t walls2[4] = {
 
 
 
+const uint16_t rotate[6] = {
+	(1<<0)  | (1<<6)  | (1<<9)   | (1<<12), // diagonal
+	(1<<8)  | (1<<9)  | (1<<6)   | (1<<7),
+	(1<<4)  | (1<<5)  | (1<<10)  | (1<<11),
+	(1<<3)  | (1<<5)  | (1<<10)  | (1<<15), // diagonal
+	(1<<2)  | (1<<5)  | (1<<10)  | (1<<14),
+	(1<<1)  | (1<<6)  | (1<<9)   | (1<<13) // 11
+};
+
+
+
+
+
 
 void setup()
 {
@@ -207,8 +220,16 @@ void setup()
 
 
 void loop() {
-//	delay(10000);
-	loopSnake();
+	digitalWrite(3, HIGH);
+
+	digitalWrite(latchPin, LOW);
+	shiftOutFast(dataPin, clockPin, MSBFIRST, 0);
+	digitalWrite(latchPin, HIGH);
+	delay(100);
+	//loopRain();
+	//loopAll();
+	//loopWalls1();
+	//delay(10000);
 }
 void loopAll() {
 
@@ -231,8 +252,89 @@ void loopAll() {
 	for(int i = 0; i< 5; i++) {
 		loopOutterWalls();
 	}
+	loopSnake();
 
 	//delay(1000);
+}
+
+
+void loopRain() {
+	uint16_t all = 0;
+	all = ~all;
+
+	const uint8_t toplayer_mask = 1<<3;
+
+
+	uint16_t drops_per_layer[4] = {
+		0,
+		0,
+		0,
+		0
+	};
+
+
+	uint16_t i, j, f, k;
+
+
+	for(j = 0; j< 10000; j++) {
+		for(f = 0; f< 128; f++) {
+
+			for(i = 0; i< 4; i++) {
+				digitalWrite(latchPin, LOW);
+				shiftOutFast(dataPin, clockPin, MSBFIRST, drops_per_layer[i]);
+				digitalWrite(latchPin, HIGH);
+				//if (drops_per_layer[i]) {
+					PORTD = 1<<(i+2);
+					delay(1);
+				//}
+
+				//animateAllLayers(80);
+			}
+		}
+
+		for(i = 0; i<= 2; i++) {
+			drops_per_layer[i] = drops_per_layer[i+1];
+		}
+
+
+		drops_per_layer[3] = (1<<random(16));
+
+
+
+		/*
+		// continue fall
+		for(i = 3; i >= 2; i--) {
+			drops_per_layer[i] = drops_per_layer[i-1];
+		}
+		// layer 1 we dont know...
+		drops_per_layer[1] = 0;
+
+		// a new drop falls find one which is not falling
+		int pos = 1<<random(16);
+	//	while (!(drops_per_layer[0] & pos)) {
+	//		pos = 1<<random(16);
+	//	}
+		// remove pos from layer 0
+		drops_per_layer[0] = drops_per_layer[0] & (~pos);
+		drops_per_layer[1] = drops_per_layer[1] | pos;
+
+		*/
+
+
+	}
+
+
+}
+
+
+
+void loopRotate() {
+	for(uint16_t i = 0; i< 6; i++) {
+		digitalWrite(latchPin, LOW);
+		shiftOutFast(dataPin, clockPin, MSBFIRST, rotate[i]);
+		digitalWrite(latchPin, HIGH);
+		animateAllLayers(i%3 == 0? 150 :130);
+	}
 }
 
 
@@ -252,7 +354,7 @@ void loopWalls1() {
 		digitalWrite(latchPin, LOW);
 		shiftOutFast(dataPin, clockPin, MSBFIRST, walls1[i]);
 		digitalWrite(latchPin, HIGH);
-		animateAllLayers(80);
+		animateAllLayers(100);
 	}
 }
 
@@ -264,7 +366,7 @@ void loopWalls2() {
 		digitalWrite(latchPin, LOW);
 		shiftOutFast(dataPin, clockPin, MSBFIRST, walls2[i]);
 		digitalWrite(latchPin, HIGH);
-		animateAllLayers(80);
+		animateAllLayers(100);
 	}
 }
 
@@ -321,7 +423,7 @@ void loopSnake() {
 	//uint16_t moving_node = (1<<random(16)) ;
 	CubeNode current	 = nodes[9];
 
-	int snake_size = 4;
+	int snake_size = 6;
 	Vertex* fulldata = new Vertex[snake_size];
 	fulldata[0].data  = 1<<9;	//current.index;
 	fulldata[0].layer = 1<<1; //1<<layer;
@@ -335,9 +437,17 @@ void loopSnake() {
 	fulldata[3].data  = 1<<11; //current.index;
 	fulldata[3].layer = 1<<0; //1<<layer;
 
+	fulldata[3].data  = 1<<13; //current.index;
+	fulldata[3].layer = 1<<0; //1<<layer;
+
+	fulldata[4].data  = 1<<14; //current.index;
+	fulldata[4].layer = 1<<0; //1<<layer;
+
+	fulldata[5].data  = 1<<14; //current.index;
+	fulldata[5].layer = 1<<0; //1<<layer;
 
 	uint16_t data = 0;
-	while(true){
+	for(int c = 0; c < 400;c ++){
 
 
 
@@ -345,7 +455,7 @@ void loopSnake() {
 		//Serial.println(current.index);
 
 		//int nei = current.randomNeighbour();
-		for(int c = 0; c < 65; c++) {
+		for(int c = 0; c < 29; c++) {
 			for(int k = 0; k< 4;k++ ) {
 				data = 0;
 				for(int j = 0; j< snake_size;j++) {
@@ -365,21 +475,16 @@ void loopSnake() {
 			}
 		}
 
+		for(int l = (snake_size-1); l>= 1; l-- ) {
+			fulldata[l].data  = fulldata[l-1].data; //current.index;
+			fulldata[l].layer = fulldata[l-1].layer; //1<<layer;
+		}
 
-		fulldata[3].data  = fulldata[2].data; //current.index;
-		fulldata[3].layer = fulldata[2].layer; //1<<layer;
+		int nei = current.randomNeighbour();
 
-		fulldata[2].data  = fulldata[1].data; //current.index;
-		fulldata[2].layer = fulldata[1].layer; //1<<layer;
-
-		fulldata[1].data  = fulldata[0].data; //current.index;
-		fulldata[1].layer = fulldata[0].layer; //1<<layer;
-
-
-
-		if (random(3) == 0 /* change layer 1/3 changes */) {
-			Serial.print("CHANGE LAYER BEFORE\n");
-			print_binary(fulldata[0].layer, 8);
+		if (random(4) == 0  || ((1<<nei) & data)/* change layer 1/3 changes */) {
+			//Serial.print("CHANGE LAYER BEFORE\n");
+			//print_binary(fulldata[0].layer, 8);
 			Serial.print("\n");
 			if (fulldata[0].layer & (1<<0)) {
 				fulldata[0].layer = 1<<1;
@@ -398,12 +503,24 @@ void loopSnake() {
 					fulldata[0].layer = 1<<3;
 				}
 			}
-			Serial.print("AFTER\n");
-			print_binary(fulldata[0].layer, 8);
-			Serial.print("\n");
+			//Serial.print("AFTER\n");
+			//print_binary(fulldata[0].layer, 8);
+			//Serial.print("\n");
 
 		} else {
+/*
 			int nei = current.randomNeighbour();
+
+			while( ((1<<nei) & data)) {
+				Serial.println("  NEIGHBOUR IN PATH");
+				Serial.print(nei);
+				Serial.println("");
+				print_binary(data,16);
+				Serial.println("");
+				print_binary(1<<nei,16);
+				nei = current.randomNeighbour();
+			}
+*/
 			fulldata[0].data  = 1<<nei;	//current.index;
 			current = nodes[nei];
 		}
