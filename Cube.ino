@@ -10,20 +10,68 @@ const int dataPin = 11;
 
 typedef struct
 {
+	uint16_t	data;
+	uint8_t 	layer;
+
+} Vertex;
+
+
+typedef struct
+{
 	uint8_t* 	adj;
 	uint8_t 	num_nodes;
 	uint8_t		index;
 
 	uint8_t	randomNeighbour() {
 		int a = random(this->num_nodes);
+		/*
 		Serial.print("RND NUMBER ");
 		Serial.print(a);
 		Serial.print(" VALUE ");
 		Serial.println(this->adj[a]);
+		*/
 		return this->adj[a];
 	}
 
 } CubeNode;
+
+/*
+void _printNodeInfo(CubeNode c)
+{
+
+	Serial.print("\nCURRENT NODE ");
+	Serial.print(c.index);
+
+	Serial.print("\nAVAILABLE NEIGHBOURS NODE ");
+	Serial.print(c.num_nodes);
+	Serial.print(" \n");
+	int k = 0;
+	for(k = 0; k< c.num_nodes; k++) {
+		Serial.print(c.adj[k]);
+		Serial.print(" ,");
+	}
+}
+
+*/
+CubeNode* nodes;
+
+
+uint8_t n0[2] = {1,7};
+uint8_t n1[3] = {0,2,6};
+uint8_t n2[3] = {1,3,5};
+uint8_t n3[2] = {4,2};
+uint8_t n4[3] = {3,5,8};
+uint8_t n5[4] = {4,6,2,9};
+uint8_t n6[4] = {1,5,7,10};
+uint8_t n7[3] = {0,6,11};
+uint8_t n8[3] = {4,9,12};
+uint8_t n9[4] = {8,10,5,13};
+uint8_t n10[4] = {9,11,6,14};
+uint8_t n11[3] = {10,7,15};
+uint8_t n12[2] = {8,13};
+uint8_t n13[3] = {12,9,14};
+uint8_t n14[3] = {13,10,15};
+uint8_t n15[2] = {11,14};
 
 
 const uint8_t outer[12] = {
@@ -52,31 +100,15 @@ const uint16_t walls2[4] = {
 };
 
 
-CubeNode* nodes = new CubeNode[16];
 
 
-void setup() {
+
+void setup()
+{
 	Serial.begin(9600);
 	Serial.println("setup");
 
-
-
-	uint8_t n0[2] = {1,7};
-	uint8_t n1[3] = {0,2,6};
-	uint8_t n2[3] = {1,3,5};
-	uint8_t n3[2] = {4,2};
-	uint8_t n4[3] = {3,5,8};
-	uint8_t n5[4] = {4,6,2,9};
-	uint8_t n6[4] = {1,5,7,10};
-	uint8_t n7[3] = {0,6,11};
-	uint8_t n8[3] = {4,9,12};
-	uint8_t n9[4] = {8,10,5,13};
-	uint8_t n10[4] = {9,11,6,14};
-	uint8_t n11[3] = {10,7,15};
-	uint8_t n12[2] = {8,13};
-	uint8_t n13[3] = {12,9,14};
-	uint8_t n14[3] = {13,10,15};
-	uint8_t n15[2] = {11,14};
+	nodes = new CubeNode[16];
 
 	nodes[0].index = 0;
 	nodes[0].adj = n0;
@@ -147,22 +179,9 @@ void setup() {
 	int k = 0,j;
 
 	for(j = 0; j< 16; j++) {
-		CubeNode a = nodes[j];
-
-		Serial.print("\nCURRENT NODE ");
-		Serial.print(j);
-
-		Serial.print("\nAVAILABLE NEIGHBOURS NODE ");
-		Serial.print(a.num_nodes);
-		Serial.print(" \n");
-		for(k = 0; k< a.num_nodes; k++) {
-			Serial.print(a.adj[k]);
-			Serial.print(" ,");
-		}
+	//	_printNodeInfo(nodes[j]);
 	}
 
-
-	Serial.println("alloc");
 
 	randomSeed(analogRead(0));
 
@@ -296,70 +315,118 @@ void loopOutterWalls() {
 void loopSnake() {
 
 
-	int mask_layer0 = 1<<2;
-	int mask_layer1 = 1<<3;
-	int mask_layer2 = 1<<4;
-	int mask_layer3 = 1<<5;
-
 
 	Serial.println("LOOP SNAKE");
 	//				     node part        layer part
 	//uint16_t moving_node = (1<<random(16)) ;
-	CubeNode current;
-	uint8_t layer		 = 5;
-	int  node 		 	 = random(16);
-	current 			 = nodes[node];
-	for(int i = 0; i< 100;i++) {
+	CubeNode current	 = nodes[9];
+
+	int snake_size = 4;
+	Vertex* fulldata = new Vertex[snake_size];
+	fulldata[0].data  = 1<<9;	//current.index;
+	fulldata[0].layer = 1<<1; //1<<layer;
+
+	fulldata[1].data  = 1<<9; //current.index;
+	fulldata[1].layer = 1<<0; //1<<layer;
+
+	fulldata[2].data  = 1<<10; //current.index;
+	fulldata[2].layer = 1<<0; //1<<layer;
+
+	fulldata[3].data  = 1<<11; //current.index;
+	fulldata[3].layer = 1<<0; //1<<layer;
+
+
+	uint16_t data = 0;
+	while(true){
 
 
 
-		Serial.println("\n");
-		Serial.println(current.index);
-		digitalWrite(latchPin, LOW);
-		shiftOutFast(dataPin, clockPin, MSBFIRST, 1<<current.index);
-		digitalWrite(latchPin, HIGH);
+		//Serial.println("CURRENT ");
+		//Serial.println(current.index);
 
-
-		int nei = current.randomNeighbour();
-		Serial.print("NEI ");
-		Serial.println(nei);
-		current = nodes[nei];
-
-		/*
-		Serial.print("CURRENT NODE ");
-		Serial.print(node);
-
-		Serial.print("\nAVAILABLE NEIGHBOURS NODE ");
-		Serial.print(current.num_nodes);
-		int k = 0;
-		for(k = 0; k< current.num_nodes; k++) {
-			Serial.print(current.adj[k]);
-			Serial.print(" ,");
+		//int nei = current.randomNeighbour();
+		for(int c = 0; c < 65; c++) {
+			for(int k = 0; k< 4;k++ ) {
+				data = 0;
+				for(int j = 0; j< snake_size;j++) {
+					if (fulldata[j].layer & (1<<k) ) {
+						// active for this layer
+						data |=  fulldata[j].data;
+					}
+				}
+				if (data != 0) {
+					digitalWrite(latchPin, LOW);
+					shiftOutFast(dataPin, clockPin, MSBFIRST, data);
+					digitalWrite(latchPin, HIGH);
+					PORTD = 1<<(k+2);
+				}
+				//PORTD = 1<<(k+2);
+				delay(1);
+			}
 		}
-		Serial.print(" \n");
-		// next node
-		int nextIdx = random(current.num_nodes);
-		Serial.print("\n  INDEX  ");
-		Serial.print(nextIdx);
-		current = nodes[current.adj[nextIdx]];
 
-		Serial.print("   NEXT NODE ");
-		Serial.print(node);
-*/
-		/*
-		uint32_t a = 1<<l;
-		a =  a <<16;
-		print_binary(a, 24);
-		*/
-		/*
-		a = a<<16;
-		a = a | moving_node;
-		*/
 
-		PORTD = 1<< layer;
-		delay(1000);
+		fulldata[3].data  = fulldata[2].data; //current.index;
+		fulldata[3].layer = fulldata[2].layer; //1<<layer;
+
+		fulldata[2].data  = fulldata[1].data; //current.index;
+		fulldata[2].layer = fulldata[1].layer; //1<<layer;
+
+		fulldata[1].data  = fulldata[0].data; //current.index;
+		fulldata[1].layer = fulldata[0].layer; //1<<layer;
+
+
+
+		if (random(3) == 0 /* change layer 1/3 changes */) {
+			Serial.print("CHANGE LAYER BEFORE\n");
+			print_binary(fulldata[0].layer, 8);
+			Serial.print("\n");
+			if (fulldata[0].layer & (1<<0)) {
+				fulldata[0].layer = 1<<1;
+			} else if (fulldata[0].layer & (1<<3)) {
+				fulldata[0].layer = 1<<2;
+			} else if (fulldata[0].layer & (1<<1)){
+				if (randBool()) {
+					fulldata[0].layer = 1<<0;
+				} else {
+					fulldata[0].layer = 1<<2;
+				}
+			} else if (fulldata[0].layer & (1<<2)){
+				if (randBool()) {
+					fulldata[0].layer = 1<<1;
+				} else {
+					fulldata[0].layer = 1<<3;
+				}
+			}
+			Serial.print("AFTER\n");
+			print_binary(fulldata[0].layer, 8);
+			Serial.print("\n");
+
+		} else {
+			int nei = current.randomNeighbour();
+			fulldata[0].data  = 1<<nei;	//current.index;
+			current = nodes[nei];
+		}
+
+
+
+
+
+
+
+
+
+
+		//fulldata[]
+
+		//current = nodes[nei];
+
+
+		//delay(100);
 
 	}
+
+	delete[] fulldata;
 
 }
 
@@ -367,6 +434,9 @@ void animateSnake(int node) {
 	PORTD = ((node>>16)<<2);
 }
 
+bool randBool() {
+	return random(2) == 1;
+}
 
 void animateAllLayers(int millis)
 {
@@ -460,6 +530,7 @@ void shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t 
     } while( cnt != 0 );
   }
 }
+
 
 
 
