@@ -1,11 +1,19 @@
 #define ODD  21845
 #define EVEN 43690
+#define ALL_VERTEX  0xffff
+
+
+#define ROW3  0b1111000000000000
+#define ROW2  0b0000111100000000
+#define ROW1  0b0000000011110000
+#define ROW0  0b0000000000001111
+
 
 //Pin connected to latch pin (ST_CP) of 74HC595
 const int latchPin = 8;
 
 //Pin connected to clock pin (SH_CP) of 74HC595
-const int clockPin = 12;
+const int clockPin = 13;
 
 ////Pin connected to Data in (DS) of 74HC595
 const int dataPin = 11;
@@ -131,12 +139,60 @@ const uint16_t edges[4] = {
 
 
 
+const uint16_t down[7][4] = {
+	{
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+	}, 	// frame 1
+	{
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<11 | 1<<10 | 1<<9 | 1<<8
+	},// frame 2
+	{
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<11 | 1<<10 | 1<<9 | 1<<8,
+		1<<4 | 1<<5 | 1<<6 | 1<<7
+
+	},// frame 3
+	{
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<11 | 1<<10 | 1<<9 | 1<<8,
+		1<<4 | 1<<5 | 1<<6 | 1<<7,
+		1 | 1<<1 | 1<<2 | 1<<3
+	}// frame 4
+	,
+	{
+		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		1<<4 | 1<<5 | 1<<6 | 1<<7,
+		1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14|1<<15,
+		0
+	},// frame 5
+	{
+		1 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7,
+		  1<<8 | 1<<9 | 1<<10 | 1<<11| 1<<12 | 1<<13 | 1<<14|1<<15,
+		0,
+		0
+	},// frame 6
+	{
+		0,
+		0,
+		0,
+		1 | 1<<1 | 1<<2 | 1<<3|1<<4 | 1<<5 | 1<<6 | 1<<7|1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14| 1<<15
+	}/// frame 7
+};
+
+
 const uint16_t up[7][4] = {
 	{
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3
+		(1 | 1<<1 | 1<<2 | 1<<3),
+		(1 | 1<<1 | 1<<2 | 1<<3),
+		(1 | 1<<1 | 1<<2 | 1<<3),
+		(1 | 1<<1 | 1<<2 | 1<<3)
 	}, 	// frame 1
 	{
 		1 | 1<<1 | 1<<2 | 1<<3,
@@ -176,7 +232,6 @@ const uint16_t up[7][4] = {
 		0
 	}/// frame 7
 };
-
 
 
 
@@ -308,9 +363,10 @@ int counter = 0;
 long tm = millis();
 
 void loop() {
-	loopCubelets();
+	loopTopWalls();
+	//loopAll();
 	//delay(1000);
-	//loopLayers();
+	//loopRandom();
 	/*
 	for(int i=0; i< 16; i++) {
 		digitalWrite(latchPin, LOW);
@@ -323,14 +379,19 @@ void loop() {
 }
 void loopAll() {
 
+	loopOneByOne();
 
+/*
 	for(int i = 0; i< 5; i++) {
 		loopWallsMixed();
 	}
+*/
 	for(int i = 0; i< 5; i++) {
 		loopWalls1();
 	}
-
+	for(int i = 0; i< 2; i++) {
+		loopExpandingCube();
+	}
 	for(int i = 0; i< 5; i++) {
 		loopWalls2();
 	}
@@ -339,14 +400,27 @@ void loopAll() {
 		loopLayers();
 	}
 
-	for(int i = 0; i< 5; i++) {
+
+	loopRandom();
+
+	for(int i = 0; i< 3; i++) {
 		loopOutterWalls();
 	}
-	for(int i = 0; i< 5; i++) {
+	for(int i = 0; i< 6; i++) {
 		loopRotate();
 	}
 
-	loopSnake();
+	//loopSnake();
+
+	loopCubelets();
+
+	for(int i = 0; i< 5; i++) {
+		loopUp();
+	}
+
+	loopTopWalls();
+
+
 
 	//delay(1000);
 }
@@ -481,7 +555,7 @@ void loopWalls1() {
 
 		uint8_t it = 0;
 		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 40;j++) {
+		for(uint8_t j = 0; j< 50;j++) {
 		  it = j%4 + 2;
 
 		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
@@ -501,7 +575,7 @@ void loopWalls2() {
 
 		uint8_t it = 0;
 		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 40;j++) {
+		for(uint8_t j = 0; j< 50;j++) {
 		  it = j%4 + 2;
 
 		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
@@ -518,13 +592,52 @@ void loopUp() {
 	for(uint16_t step = 0; step< 7; step++)
 	{
 		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*16;j++) {
+		for(uint16_t j = 0; j< 4*12;j++) {
 		  it = j%4 + 2;
 
 		  PORTD = 1<<it;
 		  shiftOutFast(dataPin, clockPin, MSBFIRST, up[step][j%4]);
 		}
 	}
+
+	for(uint16_t step = 6; step>= 1; step--)
+	{
+		uint8_t it = 0;
+		for(uint16_t j = 0; j< 4*12;j++) {
+		  it = j%4 + 2;
+
+		  PORTD = 1<<it;
+		  shiftOutFast(dataPin, clockPin, MSBFIRST, up[step][j%4]);
+		}
+	}
+
+
+}
+void loopDown() {
+
+	for(uint16_t step = 0; step< 7; step++)
+	{
+		uint8_t it = 0;
+		for(uint16_t j = 0; j< 4*120;j++) {
+		  it = j%4 + 2;
+
+		  PORTD = 1<<it;
+		  shiftOutFast(dataPin, clockPin, MSBFIRST, down[step][j%4]);
+		}
+	}
+
+	for(uint16_t step = 6; step>= 1; step--)
+	{
+		uint8_t it = 0;
+		for(uint16_t j = 0; j< 4*120;j++) {
+		  it = j%4 + 2;
+
+		  PORTD = 1<<it;
+		  shiftOutFast(dataPin, clockPin, MSBFIRST, down[step][j%4]);
+		}
+	}
+
+
 }
 
 
@@ -548,12 +661,12 @@ void loopEdges() {
 void loopLayers() {
 
 	uint16_t all =  0xffff;
-	for(uint16_t step = 0; step< 48; step++)
+	for(uint16_t step = 0; step< 5; step++)
 	{
 
 		uint8_t it = 0;
 		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 100;j++) {
+		for(uint8_t j = 0; j< 65;j++) {
 		  it = step%4 + 2;
 
 		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
@@ -565,6 +678,140 @@ void loopLayers() {
 	}
 }
 
+
+void loopOneByOne() {
+
+	uint8_t order[16]  = {0,1,2,3,4,5,6,7,11,10,9,8,12,13,14,15};
+
+	uint16_t layers[4]  = {0,0,0,0};
+	uint8_t it = 0;
+	uint8_t layer = 0;
+	for(uint8_t l = 0; l < 4; l++) {
+		for(uint8_t o = 0; o < 16; o++) {
+			uint8_t led;
+			if (l%2 == 0)
+				led = order[o];
+			else
+				led = order[15-o];
+			//uint8_t layer_led = led%16;
+
+			layers[layer] |= 1<<led;
+
+			for(uint8_t j = 0; j< 60;j++) {
+			  it = j%4 + 2;
+
+			  PORTD = 1<<it;
+
+			  shiftOutFast(dataPin, clockPin, MSBFIRST, layers[j%4]);
+			}
+		}
+		layer++;
+	}
+
+}
+
+void loopTopWalls() {
+
+
+	const uint16_t steps[4*12] = {
+		// frame 0
+		ALL_VERTEX,
+		0,
+		0,
+		0,
+		// frame 1
+		ROW0 | ROW1 | ROW2,
+		ROW0,
+		0,
+		0,
+		// frame 2
+		ROW0 | ROW1,
+		ROW0,
+		ROW0,
+		0,
+		// frame 3
+		ROW0,
+		ROW0,
+		ROW0,
+		ROW0,
+
+
+		// frame 4
+		0,
+		ROW0,
+		ROW0,
+		ROW0 | ROW1,
+
+		// frame 5
+		0,
+		0,
+		ROW0,
+		ROW0 | ROW1 | ROW2,
+
+		// frame 6
+		0,
+		0,
+		0,
+		ROW0 | ROW1 | ROW2 | ROW3,
+
+		// frame 7
+		0,
+		0,
+		ROW3,
+		ROW3 | ROW2 | ROW1,
+
+
+		// frame 8
+		0,
+		ROW3,
+		ROW3,
+		ROW3 | ROW2,
+
+		// frame 9
+		ROW3,
+		ROW3,
+		ROW3,
+		ROW3,
+
+
+		// frame 10
+		ROW3|ROW2,
+		ROW3,
+		ROW3,
+		0,
+
+		// frame 11
+		ROW3|ROW2|ROW1,
+		ROW3,
+		0,
+		0,
+
+/*
+		// frame 12
+		ROW3|ROW2|ROW1|ROW0,
+		0,
+		0,
+		0,
+*/
+	};
+
+
+	for(uint16_t step = 0; step< 12*5; step++) {
+
+
+		uint8_t current_step = step%12;
+		uint8_t it = 0;
+		// total time 15 us ==  0.015ms --> 1/0.025
+		for(uint8_t j = 0; j< 65;j++) {
+		  it = j%4 + 2;
+
+		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
+		  PORTD = 1<<it;
+
+		  shiftOutFast(dataPin, clockPin, MSBFIRST, steps[current_step*4 + j%4]);
+		}
+	}
+}
 
 void loopOutterWalls() {
 
@@ -607,11 +854,11 @@ void loopCubelets() {
 	uint8_t edges[22]  = {13,14,15,11,11,7, 6, 6, 10, 10, 14, 14, 13,13, 14, 15, 11, 11, 15, 15, 14, 13 };
 	uint8_t layers[22] = {0, 0, 0, 0, 1, 1, 1, 2, 2,  1,  1,  0,  0, 1,  2,  2,  2, 1,   1,  0,  0,  0};
 	uint8_t aux = 0;
-	for(uint16_t step = 0; step< n; step++) {
+	for(uint8_t step = 0; step< n; step++) {
 		uint8_t idx = step %n;
 		uint16_t vertex = cubelet(edges[idx]);
 
-		for(uint8_t j = 0; j< 125;j++) {
+		for(uint8_t j = 0; j< 100;j++) {
 			 aux = layers[idx] + j%2;
 			 PORTD = 1<<(aux+2);
 			 shiftOutFast(dataPin, clockPin, MSBFIRST, vertex);
@@ -619,9 +866,59 @@ void loopCubelets() {
 	}
 }
 
-void expandingCube() {
+
+
+
+void loopExpandingCube() {
+
+	uint16_t edges[6]  = {
+		1<<15,
+		1<<15|1<<14|1<<10|1<<11,
+		1<<15|1<<14|1<<13| 1<<9|1<<10|1<<11 | 1<<7|1<<6 | 1<<5,
+		0xffff,
+		1<<15|1<<14|1<<13| 1<<9|1<<10|1<<11 | 1<<7|1<<6 | 1<<5,
+		1<<15|1<<14|1<<10|1<<11
+	};
+	uint8_t layers[6] = {
+		0,1,2,3,2,1
+	};
+
+	uint8_t aux 	=  15;
+	for(uint8_t step = 0; step< 6; step++) {
+		uint8_t num_layers = layers[step]+1;
+		uint8_t n = 150;
+		//Serial.println("  aaaa");
+		for(uint8_t j = 0; j< n;j++) {
+		 aux = j%num_layers;
+
+		 //aux |= 1<<(j%(step+1)2);
+		 PORTD = 1<<(aux+2);
+		 shiftOutFast(dataPin, clockPin, MSBFIRST, edges[step]);
+		}
+	}
+}
+
+
+void loopRandom() {
+
+	for(uint8_t step = 0; step< 50; step++)
+	{
+		uint16_t all = random(65535);
+		uint8_t it = 0;
+		// total time 15 us ==  0.015ms --> 1/0.025
+		for(uint8_t j = 0; j< 10;j++) {
+		  it = step%4 + 2;
+
+		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
+		  PORTD = 1<<it;
+
+		  shiftOutFast(dataPin, clockPin, MSBFIRST, all);
+		  //delay(10);
+		}
+	}
 
 }
+
 
 void loopSnake() {
 
@@ -665,7 +962,7 @@ void loopSnake() {
 
 		//int nei = current.randomNeighbour();
 		for(int c = 0; c < 29; c++) {
-			for(int k = 0; k< 20;k++ ) {
+			for(int k = 0; k< 15;k++ ) {
 				data = 0;
 				for(int j = 0; j< snake_size;j++) {
 					if (fulldata[j].layer & (1<<(k%4)) ) {
