@@ -141,92 +141,92 @@ const uint16_t edges[4] = {
 
 const uint16_t down[7][4] = {
 	{
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
+		ROW3,
+		ROW3,
+		ROW3,
+		ROW3,
 	}, 	// frame 1
 	{
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<11 | 1<<10 | 1<<9 | 1<<8
+		ROW3,
+		ROW3,
+		ROW3,
+		ROW2
 	},// frame 2
 	{
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<11 | 1<<10 | 1<<9 | 1<<8,
-		1<<4 | 1<<5 | 1<<6 | 1<<7
+		ROW3,
+		ROW3,
+		ROW2,
+		ROW1
 
 	},// frame 3
 	{
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<11 | 1<<10 | 1<<9 | 1<<8,
-		1<<4 | 1<<5 | 1<<6 | 1<<7,
-		1 | 1<<1 | 1<<2 | 1<<3
+		ROW3,
+		ROW2,
+		ROW1,
+		ROW0
 	}// frame 4
 	,
 	{
-		1<<15 | 1<<14 | 1<<13 | 1<<12,
-		1<<4 | 1<<5 | 1<<6 | 1<<7,
-		1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14|1<<15,
+		ROW3,
+		ROW2,
+		ROW1|ROW0,
 		0
 	},// frame 5
 	{
-		1 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7,
-		  1<<8 | 1<<9 | 1<<10 | 1<<11| 1<<12 | 1<<13 | 1<<14|1<<15,
+		ROW3|ROW2|ROW1,
+		ROW0,
 		0,
 		0
 	},// frame 6
 	{
+		ALL_VERTEX,
 		0,
 		0,
-		0,
-		1 | 1<<1 | 1<<2 | 1<<3|1<<4 | 1<<5 | 1<<6 | 1<<7|1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14| 1<<15
+		0
 	}/// frame 7
 };
 
 
 const uint16_t up[7][4] = {
 	{
-		(1 | 1<<1 | 1<<2 | 1<<3),
-		(1 | 1<<1 | 1<<2 | 1<<3),
-		(1 | 1<<1 | 1<<2 | 1<<3),
-		(1 | 1<<1 | 1<<2 | 1<<3)
+		ROW0,
+		ROW0,
+		ROW0,
+		ROW0
 	}, 	// frame 1
 	{
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1<<4 | 1<<5 | 1<<6 | 1<<7
+		ROW0,
+		ROW0,
+		ROW0,
+		ROW1
 	},// frame 2
 	{
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1<<4 | 1<<5 | 1<<6 | 1<<7,
-		1<<8 | 1<<9 | 1<<10 | 1<<11
+		ROW0,
+		ROW0,
+		ROW1,
+		ROW2
 	},// frame 3
 	{
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1<<4 | 1<<5 | 1<<6 | 1<<7,
-		1<<8 | 1<<9 | 1<<10 | 1<<11,
-		1<<12 | 1<<13 | 1<<14|1<<15
+		ROW0,
+		ROW1,
+		ROW2,
+		ROW3
 	}// frame 4
 	,
 	{
-		1 | 1<<1 | 1<<2 | 1<<3,
-		1<<4 | 1<<5 | 1<<6 | 1<<7,
-		1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14|1<<15,
+		ROW0,
+		ROW1,
+		ROW2|ROW3,
 		0
 	},// frame 5
 	{
-		1 | 1<<1 | 1<<2 | 1<<3 | 1<<4 | 1<<5 | 1<<6 | 1<<7,
-		  1<<8 | 1<<9 | 1<<10 | 1<<11| 1<<12 | 1<<13 | 1<<14|1<<15,
+		ROW0|ROW1,
+		ROW2|ROW3,
 		0,
 		0
 	},// frame 6
 	{
-		1 | 1<<1 | 1<<2 | 1<<3|1<<4 | 1<<5 | 1<<6 | 1<<7|1<<8 | 1<<9 | 1<<10 | 1<<11|1<<12 | 1<<13 | 1<<14| 1<<15,
+		ALL_VERTEX,
 		0,
 		0,
 		0
@@ -363,9 +363,9 @@ int counter = 0;
 long tm = millis();
 
 void loop() {
-	loopTopWalls();
-	//loopAll();
-	//delay(1000);
+
+	fadeIn();
+	delay(1000);
 	//loopRandom();
 	/*
 	for(int i=0; i< 16; i++) {
@@ -416,7 +416,10 @@ void loopAll() {
 
 	for(int i = 0; i< 5; i++) {
 		loopUp();
+		loopDown();
 	}
+
+
 
 	loopTopWalls();
 
@@ -425,6 +428,61 @@ void loopAll() {
 	//delay(1000);
 }
 
+
+void fadeIn()
+{
+
+
+	uint16_t d = 12;
+	//http://programmers.stackexchange.com/questions/119380/the-perfect-crossfade // fade in
+	for(uint8_t k = 0; k<= d;k++) {
+		double v = 50*easeInQuad(k,0,1,d);
+		for(uint8_t i = 0; i< 20;i++) {
+			PORTD = 1<<((i%4)+2);
+			shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
+			delay(2);
+		}
+
+	}
+
+				//double alpha = (double)(( 1 - exp(-k / (  t)))*50);
+			//for(uint8_t i = 0; i< t;i++) {
+	//shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, 100);
+	//delay(7);
+
+
+	for(uint8_t k = d; k> 0;k--) {
+		double v = 50*easeInQuad(k,0,1,d);
+		for(uint8_t i = 0; i< 20;i++) {
+			PORTD = 1<<((i%4)+2);
+			shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
+			delay(1);
+		}
+
+	}
+
+	delay(20);
+}
+
+/**
+ * t: current time
+ * b: start value
+ * C. change in value
+ * d: duration
+ *
+ */
+double easeInQuad(double t, uint16_t b, uint16_t c, uint16_t d) {
+	t /= d;
+	return c*t*t + b;
+};
+
+
+// quadratic easing out - decelerating to zero velocity
+
+double easeOutQuad(double t, uint16_t b, uint16_t c, uint16_t d) {
+	t /= d;
+	return b -c * t*(t-2) ;
+};
 
 void loopRain() {
 	uint16_t all = 0;
@@ -589,10 +647,11 @@ void loopWalls2() {
 
 void loopUp() {
 
+	uint16_t s = 10;
 	for(uint16_t step = 0; step< 7; step++)
 	{
 		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*12;j++) {
+		for(uint16_t j = 0; j< 4*s;j++) {
 		  it = j%4 + 2;
 
 		  PORTD = 1<<it;
@@ -603,7 +662,7 @@ void loopUp() {
 	for(uint16_t step = 6; step>= 1; step--)
 	{
 		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*12;j++) {
+		for(uint16_t j = 0; j< 4*s;j++) {
 		  it = j%4 + 2;
 
 		  PORTD = 1<<it;
@@ -614,11 +673,11 @@ void loopUp() {
 
 }
 void loopDown() {
-
+	uint16_t s = 10;
 	for(uint16_t step = 0; step< 7; step++)
 	{
 		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*120;j++) {
+		for(uint16_t j = 0; j< 4*s;j++) {
 		  it = j%4 + 2;
 
 		  PORTD = 1<<it;
@@ -629,7 +688,7 @@ void loopDown() {
 	for(uint16_t step = 6; step>= 1; step--)
 	{
 		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*120;j++) {
+		for(uint16_t j = 0; j< 4*s;j++) {
 		  it = j%4 + 2;
 
 		  PORTD = 1<<it;
@@ -1130,16 +1189,16 @@ void shiftOutFastStd(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16
 {
 	// pin digital eight 8, PB0
 	uint16_t latch_pin_on = 1<<0;
-	PORTB = PORTB & (~latch_pin_on);
+	PORTB = PORTB & LATCH_PIN_OFF;
 	shiftOutFast(dataPin, clockPin, bitOrder, val);
-	PORTB = PORTB | (latch_pin_on);
+	PORTB = PORTB | LATCH_PIN_ON;
 }
 
 
 void shiftOutFastPOV(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val, uint16_t t)
 {
 
-	for(uint8_t k = 0; k< t; k++) {
+	for(uint16_t k = 0; k< t; k++) {
 	// odd pins
 		PORTB = PORTB & LATCH_PIN_OFF; //(~latch_pin_on);
 		_shiftOutFast(dataPin, clockPin, bitOrder, val & ODD);
