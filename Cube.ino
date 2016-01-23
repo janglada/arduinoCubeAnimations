@@ -1,13 +1,8 @@
-#define ODD  21845
-#define EVEN 43690
-#define ALL_VERTEX  0xffff
+#include <avr/interrupt.h>
+#include <avr/io.h>
+#include "Constants.h"
 
-
-#define ROW3  0b1111000000000000
-#define ROW2  0b0000111100000000
-#define ROW1  0b0000000011110000
-#define ROW0  0b0000000000001111
-
+#include "Animations.h"
 
 //Pin connected to latch pin (ST_CP) of 74HC595
 const int latchPin = 8;
@@ -22,51 +17,6 @@ const int dataPin = 11;
 #define LATCH_PIN_OFF  ~1
 
 
-typedef struct
-{
-	uint16_t	data;
-	uint8_t 	layer;
-
-} Vertex;
-
-
-typedef struct
-{
-	uint8_t* 	adj;
-	uint8_t 	num_nodes;
-	uint8_t		index;
-
-	uint8_t	randomNeighbour() {
-		int a = random(this->num_nodes);
-		/*
-		Serial.print("RND NUMBER ");
-		Serial.print(a);
-		Serial.print(" VALUE ");
-		Serial.println(this->adj[a]);
-		*/
-		return this->adj[a];
-	}
-
-} CubeNode;
-
-/*
-void _printNodeInfo(CubeNode c)
-{
-
-	Serial.print("\nCURRENT NODE ");
-	Serial.print(c.index);
-
-	Serial.print("\nAVAILABLE NEIGHBOURS NODE ");
-	Serial.print(c.num_nodes);
-	Serial.print(" \n");
-	int k = 0;
-	for(k = 0; k< c.num_nodes; k++) {
-		Serial.print(c.adj[k]);
-		Serial.print(" ,");
-	}
-}
-
-*/
 CubeNode* nodes;
 
 
@@ -88,43 +38,6 @@ uint8_t n14[3] = {13,10,15};
 uint8_t n15[2] = {11,14};
 
 
-const uint8_t outer[12] = {
- 0, 1, 2, 3, 4, 8, 12, 13, 14, 15, 11, 7
-};
-
-const uint8_t inner[4] = {
- 5,6,9,10
-};
-
-//
-const uint16_t walls1[4] = {
-	34945, //	0,7,11,15
-	17474, // 	1,6,10,14
-	8740,  //	2,5,9,13
-	4376	// 3,4,8,12
-};
-
-
-const uint16_t walls2[4] = {
-	15,		// 0,1,2,3
-	240,	// 7,6,5,4
-	3840,	// 8,9,10,11
-	61440	// 12,13,14,15
-
-};
-
-
-
-
-const uint16_t rotate[6] = {
-	(1<<0)  | (1<<6)  | (1<<9)   | (1<<12), // diagonal
-	(1<<8)  | (1<<9)  | (1<<6)   | (1<<7),
-	(1<<4)  | (1<<5)  | (1<<10)  | (1<<11),
-	(1<<3)  | (1<<5)  | (1<<10)  | (1<<15), // diagonal
-	(1<<2)  | (1<<5)  | (1<<10)  | (1<<14),
-	(1<<1)  | (1<<6)  | (1<<9)   | (1<<13) // 11
-};
-
 
 
 const uint16_t edges[4] = {
@@ -139,121 +52,11 @@ const uint16_t edges[4] = {
 
 
 
-const uint16_t down[7][4] = {
-	{
-		ROW3,
-		ROW3,
-		ROW3,
-		ROW3,
-	}, 	// frame 1
-	{
-		ROW3,
-		ROW3,
-		ROW3,
-		ROW2
-	},// frame 2
-	{
-		ROW3,
-		ROW3,
-		ROW2,
-		ROW1
-
-	},// frame 3
-	{
-		ROW3,
-		ROW2,
-		ROW1,
-		ROW0
-	}// frame 4
-	,
-	{
-		ROW3,
-		ROW2,
-		ROW1|ROW0,
-		0
-	},// frame 5
-	{
-		ROW3|ROW2|ROW1,
-		ROW0,
-		0,
-		0
-	},// frame 6
-	{
-		ALL_VERTEX,
-		0,
-		0,
-		0
-	}/// frame 7
+/*
+uint16_t m_layers[4] =  {
+	ROW1,ROW3,ROW2,ROW0
 };
-
-
-const uint16_t up[7][4] = {
-	{
-		ROW0,
-		ROW0,
-		ROW0,
-		ROW0
-	}, 	// frame 1
-	{
-		ROW0,
-		ROW0,
-		ROW0,
-		ROW1
-	},// frame 2
-	{
-		ROW0,
-		ROW0,
-		ROW1,
-		ROW2
-	},// frame 3
-	{
-		ROW0,
-		ROW1,
-		ROW2,
-		ROW3
-	}// frame 4
-	,
-	{
-		ROW0,
-		ROW1,
-		ROW2|ROW3,
-		0
-	},// frame 5
-	{
-		ROW0|ROW1,
-		ROW2|ROW3,
-		0,
-		0
-	},// frame 6
-	{
-		ALL_VERTEX,
-		0,
-		0,
-		0
-	}/// frame 7
-};
-
-
-
-
-uint16_t cubelet(uint8_t vertex) {
-	if (vertex >= 4 && vertex<8) {
-		uint16_t base =  1<<vertex | 1<<(vertex-1);
-
-		if (vertex == 7) {
-			base |= (1<<0|1<<1);
-		} else if (vertex == 6){
-			base |= (1<<1|1<<2);
-		} else if (vertex == 5){
-			base |= (1<<2|1<<3);
-		}
-		return base;
-
-	} else {
-		return 1<<vertex | 1<<(vertex-1)| 1<<(vertex-4)|1<<(vertex-5);
-	}
-}
-
+*/
 
 void setup()
 {
@@ -336,10 +139,10 @@ void setup()
 
 	randomSeed(analogRead(0));
 
-
 	pinMode(latchPin, OUTPUT);
 	pinMode(dataPin, OUTPUT);
 	pinMode(clockPin, OUTPUT);
+
 
 
 	pinMode(2, OUTPUT);
@@ -354,7 +157,34 @@ void setup()
 	digitalWrite(5, LOW);
 
 
+	 // initialize Timer1
+    // http://www.engblaze.com/microcontroller-tutorial-avr-and-arduino-timer-interrupts/
+    cli();          // disable global interrupts
+    TCCR1A = 0;     // set entire TCCR1A register to 0
+    TCCR1B = 0;     // same for TCCR1B
 
+    // set compare match register to desired timer count:
+    OCR1A = 2048;
+    // turn on CTC mode:
+    TCCR1B |= (1 << WGM12);
+    // Set CS10 and CS12 bits for 1024 prescaler:
+    TCCR1B |= (1 << CS10);
+    TCCR1B |= (1 << CS12);
+    // enable timer compare interrupt:
+    TIMSK1 |= (1 << OCIE1A);
+    // enable global interrupts:
+    sei();
+
+/*
+	//http://electronics.stackexchange.com/questions/26363/how-do-i-create-a-timer-interrupt-with-arduino
+	TCCR2B = 0x00;        //Disbale Timer2 while we set it up
+	TCNT2  = 130;         //Reset Timer Count to 130 out of 255
+	TIFR2  = 0x00;        //Timer2 INT Flag Reg: Clear Timer Overflow Flag
+	TIMSK2 = 0x01;        //Timer2 INT Reg: Timer2 Overflow Interrupt Enable
+	TCCR2A = 0x00;        //Timer2 Control Reg A: Wave Gen Mode normal
+	TCCR2B = 0x06;        //Timer2 Control Reg B: Timer Prescaler set to 128
+
+*/
 
 }
 
@@ -363,9 +193,21 @@ int counter = 0;
 long tm = millis();
 
 void loop() {
+//delay(1000);
 
-	fadeIn();
-	delay(1000);
+	for(uint8_t i = 0;i < 4; i++) {
+		PORTD = 1<<(i+2);
+		shiftOutFastRepeat(dataPin, clockPin, MSBFIRST, m_layers[i], 8 ,3);
+
+	}
+
+
+	//PORTD = 0;
+	//}
+
+	//loopWalls2();
+	//fadeIn();
+	//delay(1000);
 	//loopRandom();
 	/*
 	for(int i=0; i< 16; i++) {
@@ -379,55 +221,84 @@ void loop() {
 }
 void loopAll() {
 
-	loopOneByOne();
-
-/*
-	for(int i = 0; i< 5; i++) {
-		loopWallsMixed();
-	}
-*/
-	for(int i = 0; i< 5; i++) {
-		loopWalls1();
-	}
-	for(int i = 0; i< 2; i++) {
-		loopExpandingCube();
-	}
-	for(int i = 0; i< 5; i++) {
-		loopWalls2();
-	}
-
-	for(int i = 0; i< 5; i++) {
-		loopLayers();
-	}
-
-
-	loopRandom();
 
 	for(int i = 0; i< 3; i++) {
-		loopOutterWalls();
+		//loopOutterWalls();
 	}
 	for(int i = 0; i< 6; i++) {
-		loopRotate();
+	//	loopRotate();
 	}
 
 	//loopSnake();
 
-	loopCubelets();
-
-	for(int i = 0; i< 5; i++) {
-		loopUp();
-		loopDown();
-	}
-
-
-
-	loopTopWalls();
+//	loopTopWalls();
 
 
 
 	//delay(1000);
 }
 
+unsigned int toggle = 0;  //used to keep the state of the LED
+unsigned int count = 0;   //used to keep count of how many interrupts were fired
+
+// http://stackoverflow.com/questions/252748/how-can-i-use-an-array-of-function-pointers
+void (*f_ptr[14]) (int step) = {
+	wallsStep1,
+	wallsStep2,
+	topBottomWalls,
+	rotateUp,
+	rotateDown,
+	wallsOutter,
+	rotateCenter,
+	layers,
+	oneByOne,
+	randomCube,
+	loopCubelets,
+	expandingCube,
+	rain,
+	expandingCubeEmpty
+};
+
+ISR(TIMER1_COMPA_vect)
+{
+
+	(f_ptr[13])(counter);
+	counter++;
+	/*
+	//uint8_t step = (++counter)%4;
+
+	//Serial.println(millis());
+	m_layers[0] = walls2[step];
+	m_layers[1] = walls2[step];
+	m_layers[2] = walls2[step];
+	m_layers[3] = walls2[step];
+*/
+}
+
+/*
+// http://arduinomega.blogspot.com.es/2011/05/timer2-and-overflow-interrupt-lets-get.html
+ISR(TIMER2_OVF_vect) {
+            //Increments the interrupt counter
+
+	PORTD = 1<<2;
+	shiftOutFast(dataPin, clockPin, MSBFIRST, m_layers[0]);
+
+	PORTD = 1<<(1 + 2);
+	shiftOutFast(dataPin, clockPin, MSBFIRST, m_layers[1]);
+
+	PORTD = 1<<(2+2);
+	shiftOutFast(dataPin, clockPin, MSBFIRST, m_layers[2]);
+
+	PORTD = 1<<(3+2);
+	shiftOutFast(dataPin, clockPin, MSBFIRST, m_layers[3]);
+
+  TCNT2 = 255;           //Reset Timer to 130 out of 255
+  TIFR2 = 0x00;          //Timer2 INT Flag Reg: Clear Timer Overflow Flag
+
+
+
+};
+*/
 
 void fadeIn()
 {
@@ -484,220 +355,7 @@ double easeOutQuad(double t, uint16_t b, uint16_t c, uint16_t d) {
 	return b -c * t*(t-2) ;
 };
 
-void loopRain() {
-	uint16_t all = 0;
-	all = ~all;
 
-	const uint8_t toplayer_mask = 1<<3;
-
-
-	uint32_t drops_per_layer[4] = {
-		0,
-		0,
-		0,
-		0
-	};
-
-
-	uint16_t i, j, f, k;
-
-
-	for(j = 0; j< 10000; j++) {
-	//	for(f = 0; f< 10; f++) {
-
-
-				//digitalWrite(latchPin, LOW);
-
-				for(uint8_t k = 0; k< 60;k++) {
-
-				//if (i==0)
-				//	shiftOutFast(dataPin, clockPin, MSBFIRST, all);
-				//else
-					shiftOutFast(dataPin, clockPin, MSBFIRST, drops_per_layer[k%4]);
-
-				//digitalWrite(latchPin, HIGH);
-				//if (drops_per_layer[i]) {
-					PORTD = 1<<(k%4+2);
-				}
-				//}
-
-				//animateAllLayers(80);
-
-		//}
-
-
-		for(i = 3; i > 1; i--) {
-			drops_per_layer[i] = drops_per_layer[i-1];
-		}
-		drops_per_layer[1] = 0;
-
-		uint8_t n =  1;
-		drops_per_layer[0] = all;
-		for(int i = 0; i< n; i++)
-			drops_per_layer[1] |= (1<<random(16));
-
-
-
-		/*
-		// continue fall
-		for(i = 3; i >= 2; i--) {
-			drops_per_layer[i] = drops_per_layer[i-1];
-		}
-		// layer 1 we dont know...
-		drops_per_layer[1] = 0;
-
-		// a new drop falls find one which is not falling
-		int pos = 1<<random(16);
-	//	while (!(drops_per_layer[0] & pos)) {
-	//		pos = 1<<random(16);
-	//	}
-		// remove pos from layer 0
-		drops_per_layer[0] = drops_per_layer[0] & (~pos);
-		drops_per_layer[1] = drops_per_layer[1] | pos;
-
-		*/
-
-
-	}
-
-
-}
-
-
-
-void loopRotate() {
-	for(uint16_t step = 0; step< 6; step++) {
-
-
-		uint8_t it = 0;
-		uint8_t time = (step%3 == 0)? 50 :40;
-		//digitalWrite(latchPin, HIGH);
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< time;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, rotate[step]);
-		}
-
-
-
-	}
-}
-
-
-void loopWallsMixed() {
-	for(uint16_t step = 0; step< 4; step++) {
-
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 40;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, walls1[step] |  walls2[(step-3)%4]);
-		}
-
-	}
-}
-
-
-void loopWalls1() {
-
-	for(uint16_t step = 0; step< 4; step++)
-	{
-
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 50;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, walls1[step]);
-		}
-	}
-}
-
-
-void loopWalls2() {
-
-
-	for(uint16_t step = 0; step< 4; step++)
-	{
-
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 50;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, walls2[step]);
-		}
-	}
-}
-
-
-void loopUp() {
-
-	uint16_t s = 10;
-	for(uint16_t step = 0; step< 7; step++)
-	{
-		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*s;j++) {
-		  it = j%4 + 2;
-
-		  PORTD = 1<<it;
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, up[step][j%4]);
-		}
-	}
-
-	for(uint16_t step = 6; step>= 1; step--)
-	{
-		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*s;j++) {
-		  it = j%4 + 2;
-
-		  PORTD = 1<<it;
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, up[step][j%4]);
-		}
-	}
-
-
-}
-void loopDown() {
-	uint16_t s = 10;
-	for(uint16_t step = 0; step< 7; step++)
-	{
-		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*s;j++) {
-		  it = j%4 + 2;
-
-		  PORTD = 1<<it;
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, down[step][j%4]);
-		}
-	}
-
-	for(uint16_t step = 6; step>= 1; step--)
-	{
-		uint8_t it = 0;
-		for(uint16_t j = 0; j< 4*s;j++) {
-		  it = j%4 + 2;
-
-		  PORTD = 1<<it;
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, down[step][j%4]);
-		}
-	}
-
-
-}
 
 
 void loopEdges() {
@@ -717,266 +375,17 @@ void loopEdges() {
 
 
 
-void loopLayers() {
-
-	uint16_t all =  0xffff;
-	for(uint16_t step = 0; step< 5; step++)
-	{
-
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 65;j++) {
-		  it = step%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, all);
-		  //delay(10);
-		}
-	}
-}
-
-
-void loopOneByOne() {
-
-	uint8_t order[16]  = {0,1,2,3,4,5,6,7,11,10,9,8,12,13,14,15};
-
-	uint16_t layers[4]  = {0,0,0,0};
-	uint8_t it = 0;
-	uint8_t layer = 0;
-	for(uint8_t l = 0; l < 4; l++) {
-		for(uint8_t o = 0; o < 16; o++) {
-			uint8_t led;
-			if (l%2 == 0)
-				led = order[o];
-			else
-				led = order[15-o];
-			//uint8_t layer_led = led%16;
-
-			layers[layer] |= 1<<led;
-
-			for(uint8_t j = 0; j< 60;j++) {
-			  it = j%4 + 2;
-
-			  PORTD = 1<<it;
-
-			  shiftOutFast(dataPin, clockPin, MSBFIRST, layers[j%4]);
-			}
-		}
-		layer++;
-	}
-
-}
-
-void loopTopWalls() {
-
-
-	const uint16_t steps[4*12] = {
-		// frame 0
-		ALL_VERTEX,
-		0,
-		0,
-		0,
-		// frame 1
-		ROW0 | ROW1 | ROW2,
-		ROW0,
-		0,
-		0,
-		// frame 2
-		ROW0 | ROW1,
-		ROW0,
-		ROW0,
-		0,
-		// frame 3
-		ROW0,
-		ROW0,
-		ROW0,
-		ROW0,
-
-
-		// frame 4
-		0,
-		ROW0,
-		ROW0,
-		ROW0 | ROW1,
-
-		// frame 5
-		0,
-		0,
-		ROW0,
-		ROW0 | ROW1 | ROW2,
-
-		// frame 6
-		0,
-		0,
-		0,
-		ROW0 | ROW1 | ROW2 | ROW3,
-
-		// frame 7
-		0,
-		0,
-		ROW3,
-		ROW3 | ROW2 | ROW1,
-
-
-		// frame 8
-		0,
-		ROW3,
-		ROW3,
-		ROW3 | ROW2,
-
-		// frame 9
-		ROW3,
-		ROW3,
-		ROW3,
-		ROW3,
-
-
-		// frame 10
-		ROW3|ROW2,
-		ROW3,
-		ROW3,
-		0,
-
-		// frame 11
-		ROW3|ROW2|ROW1,
-		ROW3,
-		0,
-		0,
-
-/*
-		// frame 12
-		ROW3|ROW2|ROW1|ROW0,
-		0,
-		0,
-		0,
-*/
-	};
-
-
-	for(uint16_t step = 0; step< 12*5; step++) {
-
-
-		uint8_t current_step = step%12;
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 65;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, steps[current_step*4 + j%4]);
-		}
-	}
-}
-
-void loopOutterWalls() {
-
-	uint16_t border = 0;
-	for(uint16_t step = 0; step< 24; step++) {
-		//bitWrite(oout, i, HIGH);
-		border = 1<<outer[step%12];
-
-		border |= 1<<outer[(12 +step-3)%12];
-		border |= 1<<outer[(12 +step-2)%12];
-		border |= 1<<outer[(12 +step-1)%12];
-
-		/*
-		if (step >= 3)
-			border |= 1<<outer[step-3];
-
-		if (step >= 2)
-			border |= 1<<outer[step-2];
-		if (step >= 1)
-			border |= 1<<outer[step-1];
-		*/
-
-
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 40;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, border);
-		}
-	}
-}
-
-void loopCubelets() {
-
-	uint8_t n =  22;
-	uint8_t edges[22]  = {13,14,15,11,11,7, 6, 6, 10, 10, 14, 14, 13,13, 14, 15, 11, 11, 15, 15, 14, 13 };
-	uint8_t layers[22] = {0, 0, 0, 0, 1, 1, 1, 2, 2,  1,  1,  0,  0, 1,  2,  2,  2, 1,   1,  0,  0,  0};
-	uint8_t aux = 0;
-	for(uint8_t step = 0; step< n; step++) {
-		uint8_t idx = step %n;
-		uint16_t vertex = cubelet(edges[idx]);
-
-		for(uint8_t j = 0; j< 100;j++) {
-			 aux = layers[idx] + j%2;
-			 PORTD = 1<<(aux+2);
-			 shiftOutFast(dataPin, clockPin, MSBFIRST, vertex);
-		}
-	}
-}
 
 
 
 
-void loopExpandingCube() {
-
-	uint16_t edges[6]  = {
-		1<<15,
-		1<<15|1<<14|1<<10|1<<11,
-		1<<15|1<<14|1<<13| 1<<9|1<<10|1<<11 | 1<<7|1<<6 | 1<<5,
-		0xffff,
-		1<<15|1<<14|1<<13| 1<<9|1<<10|1<<11 | 1<<7|1<<6 | 1<<5,
-		1<<15|1<<14|1<<10|1<<11
-	};
-	uint8_t layers[6] = {
-		0,1,2,3,2,1
-	};
-
-	uint8_t aux 	=  15;
-	for(uint8_t step = 0; step< 6; step++) {
-		uint8_t num_layers = layers[step]+1;
-		uint8_t n = 150;
-		//Serial.println("  aaaa");
-		for(uint8_t j = 0; j< n;j++) {
-		 aux = j%num_layers;
-
-		 //aux |= 1<<(j%(step+1)2);
-		 PORTD = 1<<(aux+2);
-		 shiftOutFast(dataPin, clockPin, MSBFIRST, edges[step]);
-		}
-	}
-}
 
 
-void loopRandom() {
 
-	for(uint8_t step = 0; step< 50; step++)
-	{
-		uint16_t all = random(65535);
-		uint8_t it = 0;
-		// total time 15 us ==  0.015ms --> 1/0.025
-		for(uint8_t j = 0; j< 10;j++) {
-		  it = step%4 + 2;
 
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
 
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, all);
-		  //delay(10);
-		}
-	}
 
-}
+
 
 
 void loopSnake() {
@@ -1112,9 +521,6 @@ void loopSnake() {
 
 }
 
-void animateSnake(int node) {
-	PORTD = ((node>>16)<<2);
-}
 
 bool randBool() {
 	return random(2) == 1;
@@ -1185,12 +591,23 @@ void shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t 
 	shiftOutFastPOV(dataPin, clockPin, bitOrder, val, 25);
 }
 
-void shiftOutFastStd(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val)
+void shiftOutFastRepeat(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val, uint8_t d, uint8_t repeat)
 {
-	// pin digital eight 8, PB0
-	uint16_t latch_pin_on = 1<<0;
+	for(uint16_t k = 0; k< repeat; k++) {
+	// odd pins
+		PORTB = PORTB & LATCH_PIN_OFF;
+		_shiftOutFast(dataPin, clockPin, bitOrder, val & ODD);
+
+		PORTB = PORTB | LATCH_PIN_ON;
+		delayMicroseconds(d);
+
+		PORTB = PORTB & LATCH_PIN_OFF;
+		_shiftOutFast(dataPin, clockPin, bitOrder, val & EVEN);
+		PORTB = PORTB | LATCH_PIN_ON;
+		delayMicroseconds(d);
+	}
 	PORTB = PORTB & LATCH_PIN_OFF;
-	shiftOutFast(dataPin, clockPin, bitOrder, val);
+	_shiftOutFast(dataPin, clockPin, MSBFIRST, 0);
 	PORTB = PORTB | LATCH_PIN_ON;
 }
 
@@ -1211,10 +628,11 @@ void shiftOutFastPOV(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16
 		PORTB = PORTB | LATCH_PIN_ON;
 		delayMicroseconds(10);
 	}
-
+	/*
 	PORTB = PORTB & LATCH_PIN_OFF;
 	_shiftOutFast(dataPin, clockPin, bitOrder, 0);
 	PORTB = PORTB | LATCH_PIN_ON;
+	*/
 }
 
 
