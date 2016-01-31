@@ -126,8 +126,25 @@ void randomCube(int step) {
 	m_layers[1] = random(ALL_VERTEX);
 	m_layers[2] = random(ALL_VERTEX);
 	m_layers[3] = random(ALL_VERTEX);
-	OCR1A = 512; //1024;//2048;
+	 //1024;//2048;
 }
+
+void blink(int step) {
+	bool on = step%3==0;
+	if (on) {
+		m_layers[0] = ALL_VERTEX;
+		m_layers[1] = ALL_VERTEX;
+		m_layers[2] = ALL_VERTEX;
+		m_layers[3] = ALL_VERTEX;
+	} else {
+		m_layers[0] = 0;
+		m_layers[1] = 0;
+		m_layers[2] = 0;
+		m_layers[3] = 0;
+
+	}
+}
+
 
 uint16_t cubelet(int vertex) {
 	if (vertex >= 4 && vertex<8) {
@@ -208,6 +225,29 @@ void rain(int step) {
 		m_layers[1] = m_layers[0];
 		m_layers[0] = step%4 ==0? 0: (1<<random(16))|(1<<random(16))|(1<<random(16))|(1<<random(16))|(1<<random(16))|(1<<random(16));
 	}
+}
+
+void goingUp(int step) {
+	step = step%19;
+	if (step == 0) {
+		m_layers[0] = 0;
+		m_layers[2] = 0;
+		m_layers[3] = ALL_VERTEX;
+	}
+	if (step < 16) {
+		int16_t led 	= 1<<going_up_order[step];
+		m_layers[0] |= m_layers[1];
+		m_layers[1] = m_layers[2];
+		m_layers[2] = led;
+		m_layers[3] &= (~led);
+	} else {
+		m_layers[0] |= m_layers[1];
+		m_layers[1] = m_layers[2];
+		m_layers[2] = m_layers[3];
+		m_layers[3] = 0;
+	}
+
+
 }
 
 

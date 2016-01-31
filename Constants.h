@@ -227,6 +227,8 @@ const uint16_t rotate_center[6] = {
 
 
 const uint8_t one_by_one_order[16]  = {0,1,2,3,4,5,6,7,11,10,9,8,12,13,14,15};
+const uint8_t going_up_order[16]    = {0,1,2,3,7,6,5,4,11,10,9,8,15,14,13,12};
+
 
 const uint8_t cubelets_animation_length =  22;
 const uint8_t cubelets_edges[22]  = {13,14,15,11,11,7, 6, 6, 10, 10, 14, 14, 13,13, 14, 15, 11, 11, 15, 15, 14, 13 };

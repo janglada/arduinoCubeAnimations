@@ -1,6 +1,7 @@
 
 #include "Constants.h"
 #include "Animations.h"
+#include "AnimType.h"
 
 //Pin connected to latch pin (ST_CP) of 74HC595
 const int latchPin = 8;
@@ -48,49 +49,49 @@ const uint16_t edges[4] = {
 };
 
 
-const int fn_steps[14] = {
-	4,
-	4,
-	12,
-	13,
-	13,
-	12,
-	6,
-	6,
-	64,
-	64,
-	22,
-	6,
-	64,
-	9
 
-};
 
-// http://stackoverflow.com/questions/252748/how-can-i-use-an-array-of-function-pointers
-void (*f_ptr[14]) (int step) = {
-	wallsStep1,
-	wallsStep2,
-	topBottomWalls,
-	rotateUp,
-	rotateDown,
-	wallsOutter,
-	rotateCenter,
-	layers,
-	oneByOne,
-	randomCube,
-	loopCubelets,
-	expandingCube,
-	rain,
-	expandingCubeEmpty
-};
+
+
+const uint8_t num_animations = 15;
+AnimType animations[num_animations];
 
 
 void setup()
 {
-	Serial.begin(9600);
-	Serial.println("setup");
 
-	nodes = new CubeNode[16];
+
+
+
+	animations[0] = {4*3, 2048,  wallsStep1};
+	animations[1] = {4*3, 2048,  wallsStep2};
+	animations[2] = {12*3, 2048,  topBottomWalls};
+
+	animations[3] = {13*3, 1024,  rotateUp};
+	animations[4] = {13*3, 1024,  rotateDown};
+	animations[5] = {12*3, 2048,  wallsOutter};
+
+	animations[6] = {12*3, 2048,  rotateCenter};
+	animations[7] = {6*3, 2048,  layers};
+	animations[8] = {64*2, 512,  oneByOne};
+
+
+	animations[9]  = {128, 1024,  randomCube};
+	animations[10] = {22*3, 2048,  loopCubelets};
+	animations[11] = {6*3,  2048,	expandingCube};
+
+
+	animations[12] = {256, 1024,  rain};
+	animations[13] = {9*3,  2048,  expandingCubeEmpty};
+
+	animations[14] = {32*3,  512,  blink};
+
+
+
+	animations[0] = {19*10, 768,  goingUp};
+
+
+	nodes 		= new CubeNode[16];
 
 	nodes[0].index = 0;
 	nodes[0].adj = n0;
@@ -187,7 +188,7 @@ void setup()
     TCCR1B = 0;     // same for TCCR1B
 
     // set compare match register to desired timer count:
-    OCR1A = 2048; //1024;//2048;
+    OCR1A = animations[0].prescaleer; //1024;//2048;
     // turn on CTC mode:
     TCCR1B |= (1 << WGM12);
     // Set CS10 and CS12 bits for 1024 prescaler:
@@ -221,7 +222,7 @@ void loop() {
 
 	for(uint8_t i = 0;i < 4; i++) {
 		PORTD = 1<<(i+2);
-		shiftOutFastRepeat(dataPin, clockPin, MSBFIRST, m_layers[i], 8 ,3);
+		shiftOutFastRepeat(dataPin, clockPin,  m_layers[i], 8 /* delay micros */ ,3 /* repeat*/);
 
 	}
 
@@ -235,16 +236,17 @@ volatile int step = 0;
 
 ISR(TIMER1_COMPA_vect)
 {
+	//anim_idx = 0;
+	if (step < animations[anim_idx].steps){
 
-	if (step < fn_steps[anim_idx]*3){
-
-		(f_ptr[anim_idx])(step);
+		animations[anim_idx].fn(step);
 		step++;
 	} else {
 		anim_idx++;
-		if (anim_idx > 13)
+		if (anim_idx >= num_animations)
 			anim_idx = 0;
 		step = 0;
+		OCR1A = animations[anim_idx].prescaleer;
 	}
 	//(f_ptr[13])(counter);
 	counter++;
@@ -292,7 +294,7 @@ void fadeIn()
 		double v = 50*easeInQuad(k,0,1,d);
 		for(uint8_t i = 0; i< 20;i++) {
 			PORTD = 1<<((i%4)+2);
-			shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
+			//shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
 			delay(2);
 		}
 
@@ -304,7 +306,7 @@ void fadeIn()
 		double v = 50*easeInQuad(k,0,1,d);
 		for(uint8_t i = 0; i< 20;i++) {
 			PORTD = 1<<((i%4)+2);
-			shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
+			//shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, v);
 			delay(1);
 		}
 
@@ -335,20 +337,7 @@ double easeOutQuad(double t, uint16_t b, uint16_t c, uint16_t d) {
 
 
 
-void loopEdges() {
 
-	uint8_t it = 0;
-	for(uint8_t step = 0; step< 4; step++) {
-		for(uint8_t j = 0; j< 40;j++) {
-		  it = j%4 + 2;
-
-		  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-		  PORTD = 1<<it;
-
-		  shiftOutFast(dataPin, clockPin, MSBFIRST, edges[step]);
-		}
-	}
-}
 
 
 
@@ -356,7 +345,6 @@ void loopSnake() {
 
 
 
-	Serial.println("LOOP SNAKE");
 	//				     node part        layer part
 	//uint16_t moving_node = (1<<random(16)) ;
 	CubeNode current	 = nodes[9];
@@ -404,7 +392,7 @@ void loopSnake() {
 				}
 				if (data != 0) {
 					//digitalWrite(latchPin, LOW);
-					shiftOutFast(dataPin, clockPin, MSBFIRST, data);
+					//shiftOutFast(dataPin, clockPin, MSBFIRST, data);
 					//digitalWrite(latchPin, HIGH);
 					PORTD = 1<<(k%4+2);
 				}
@@ -423,7 +411,6 @@ void loopSnake() {
 		if (random(4) == 0  || ((1<<nei) & data)/* change layer 1/3 changes */) {
 			//Serial.print("CHANGE LAYER BEFORE\n");
 			//print_binary(fulldata[0].layer, 8);
-			Serial.print("\n");
 			if (fulldata[0].layer & (1<<0)) {
 				fulldata[0].layer = 1<<1;
 			} else if (fulldata[0].layer & (1<<3)) {
@@ -530,57 +517,32 @@ void shiftOut16(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t va
 //                  +----+
 //
 
-void shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val)
-{
-	shiftOutFastPOV(dataPin, clockPin, bitOrder, val, 25);
-}
 
-void shiftOutFastRepeat(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val, uint8_t d, uint8_t repeat)
+
+void shiftOutFastRepeat(uint8_t dataPin, uint8_t clockPin, uint16_t val, uint8_t d, uint8_t repeat)
 {
 	for(uint16_t k = 0; k< repeat; k++) {
 	// odd pins
 		PORTB = PORTB & LATCH_PIN_OFF;
-		_shiftOutFast(dataPin, clockPin, bitOrder, val & ODD);
-
+		_shiftOutFast(dataPin, clockPin, val & ODD);
 		PORTB = PORTB | LATCH_PIN_ON;
 		delayMicroseconds(d);
 
 		PORTB = PORTB & LATCH_PIN_OFF;
-		_shiftOutFast(dataPin, clockPin, bitOrder, val & EVEN);
+		_shiftOutFast(dataPin, clockPin,  val & EVEN);
 		PORTB = PORTB | LATCH_PIN_ON;
 		delayMicroseconds(d);
 	}
 	PORTB = PORTB & LATCH_PIN_OFF;
-	_shiftOutFast(dataPin, clockPin, MSBFIRST, 0);
+	_shiftOutFast(dataPin, clockPin,  0);
 	PORTB = PORTB | LATCH_PIN_ON;
 }
 
 
-void shiftOutFastPOV(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val, uint16_t t)
-{
-
-	for(uint16_t k = 0; k< t; k++) {
-	// odd pins
-		PORTB = PORTB & LATCH_PIN_OFF; //(~latch_pin_on);
-		_shiftOutFast(dataPin, clockPin, bitOrder, val & ODD);
-
-		PORTB = PORTB | LATCH_PIN_ON;
-		delayMicroseconds(10);
-
-		PORTB = PORTB & LATCH_PIN_OFF;
-		_shiftOutFast(dataPin, clockPin, bitOrder, val & EVEN);
-		PORTB = PORTB | LATCH_PIN_ON;
-		delayMicroseconds(10);
-	}
-	/*
-	PORTB = PORTB & LATCH_PIN_OFF;
-	_shiftOutFast(dataPin, clockPin, bitOrder, 0);
-	PORTB = PORTB | LATCH_PIN_ON;
-	*/
-}
 
 
-void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val)
+
+void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint16_t val)
 {
 
 
@@ -602,6 +564,7 @@ void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t
   bitNotData ^= 0x0ff;
 
   cnt = 16;
+  /*
   if (bitOrder == LSBFIRST)
   {
     do
@@ -619,6 +582,8 @@ void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t
   }
   else
   {
+	  */
+
     do
     {
       if ( val & 32768 )
@@ -631,7 +596,7 @@ void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t
       val <<= 1;
       cnt--;
     } while( cnt != 0 );
-  }
+ // }
 
 
  // PORTB = PORTB | (latch_pin_on);
