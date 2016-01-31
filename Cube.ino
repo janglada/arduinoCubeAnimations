@@ -1,7 +1,5 @@
-#include <avr/interrupt.h>
-#include <avr/io.h>
-#include "Constants.h"
 
+#include "Constants.h"
 #include "Animations.h"
 
 //Pin connected to latch pin (ST_CP) of 74HC595
@@ -50,13 +48,42 @@ const uint16_t edges[4] = {
 };
 
 
+const int fn_steps[14] = {
+	4,
+	4,
+	12,
+	13,
+	13,
+	12,
+	6,
+	6,
+	64,
+	64,
+	22,
+	6,
+	64,
+	9
 
-
-/*
-uint16_t m_layers[4] =  {
-	ROW1,ROW3,ROW2,ROW0
 };
-*/
+
+// http://stackoverflow.com/questions/252748/how-can-i-use-an-array-of-function-pointers
+void (*f_ptr[14]) (int step) = {
+	wallsStep1,
+	wallsStep2,
+	topBottomWalls,
+	rotateUp,
+	rotateDown,
+	wallsOutter,
+	rotateCenter,
+	layers,
+	oneByOne,
+	randomCube,
+	loopCubelets,
+	expandingCube,
+	rain,
+	expandingCubeEmpty
+};
+
 
 void setup()
 {
@@ -130,11 +157,7 @@ void setup()
 	nodes[15].num_nodes = sizeof(n15)/ sizeof(uint8_t);
 
 
-	int k = 0,j;
 
-	for(j = 0; j< 16; j++) {
-	//	_printNodeInfo(nodes[j]);
-	}
 
 
 	randomSeed(analogRead(0));
@@ -164,7 +187,7 @@ void setup()
     TCCR1B = 0;     // same for TCCR1B
 
     // set compare match register to desired timer count:
-    OCR1A = 2048;
+    OCR1A = 2048; //1024;//2048;
     // turn on CTC mode:
     TCCR1B |= (1 << WGM12);
     // Set CS10 and CS12 bits for 1024 prescaler:
@@ -194,6 +217,7 @@ long tm = millis();
 
 void loop() {
 //delay(1000);
+//	delay(1000);
 
 	for(uint8_t i = 0;i < 4; i++) {
 		PORTD = 1<<(i+2);
@@ -201,68 +225,28 @@ void loop() {
 
 	}
 
-
-	//PORTD = 0;
-	//}
-
-	//loopWalls2();
-	//fadeIn();
-	//delay(1000);
-	//loopRandom();
-	/*
-	for(int i=0; i< 16; i++) {
-		digitalWrite(latchPin, LOW);
-		_shiftOutFast(dataPin, clockPin, MSBFIRST, 1<<8|1<<7);
-		digitalWrite(latchPin, HIGH);
-		delay(1000);
-	}
-
-	*/
-}
-void loopAll() {
-
-
-	for(int i = 0; i< 3; i++) {
-		//loopOutterWalls();
-	}
-	for(int i = 0; i< 6; i++) {
-	//	loopRotate();
-	}
-
-	//loopSnake();
-
-//	loopTopWalls();
-
-
-
-	//delay(1000);
 }
 
-unsigned int toggle = 0;  //used to keep the state of the LED
-unsigned int count = 0;   //used to keep count of how many interrupts were fired
 
-// http://stackoverflow.com/questions/252748/how-can-i-use-an-array-of-function-pointers
-void (*f_ptr[14]) (int step) = {
-	wallsStep1,
-	wallsStep2,
-	topBottomWalls,
-	rotateUp,
-	rotateDown,
-	wallsOutter,
-	rotateCenter,
-	layers,
-	oneByOne,
-	randomCube,
-	loopCubelets,
-	expandingCube,
-	rain,
-	expandingCubeEmpty
-};
+
+
+volatile int anim_idx = 0;
+volatile int step = 0;
 
 ISR(TIMER1_COMPA_vect)
 {
 
-	(f_ptr[13])(counter);
+	if (step < fn_steps[anim_idx]*3){
+
+		(f_ptr[anim_idx])(step);
+		step++;
+	} else {
+		anim_idx++;
+		if (anim_idx > 13)
+			anim_idx = 0;
+		step = 0;
+	}
+	//(f_ptr[13])(counter);
 	counter++;
 	/*
 	//uint8_t step = (++counter)%4;
@@ -302,8 +286,6 @@ ISR(TIMER2_OVF_vect) {
 
 void fadeIn()
 {
-
-
 	uint16_t d = 12;
 	//http://programmers.stackexchange.com/questions/119380/the-perfect-crossfade // fade in
 	for(uint8_t k = 0; k<= d;k++) {
@@ -316,10 +298,6 @@ void fadeIn()
 
 	}
 
-				//double alpha = (double)(( 1 - exp(-k / (  t)))*50);
-			//for(uint8_t i = 0; i< t;i++) {
-	//shiftOutFastPOV(dataPin, clockPin, MSBFIRST, ALL_VERTEX, 100);
-	//delay(7);
 
 
 	for(uint8_t k = d; k> 0;k--) {
@@ -357,7 +335,6 @@ double easeOutQuad(double t, uint16_t b, uint16_t c, uint16_t d) {
 
 
 
-
 void loopEdges() {
 
 	uint8_t it = 0;
@@ -372,19 +349,6 @@ void loopEdges() {
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -526,27 +490,7 @@ bool randBool() {
 	return random(2) == 1;
 }
 
-void animateAllLayers(int millis)
-{
 
-
-	uint16_t it = 0;
-	// total time 15 us ==  0.015ms --> 1/0.025
-	for(int j = 0; j< millis;j++) {
-	  it = j%4 + 2;
-
-	  // PORTD = B10101000;  // sets digital pins 7,5,3 HIGH
-	  PORTD = 1<<it;
-	  /*
-	  digitalWrite(2, it == 0? HIGH :LOW);
-	  digitalWrite(3, it == 1? HIGH :LOW);
-	  digitalWrite(4, it == 2? HIGH :LOW);
-	  digitalWrite(5, it == 3? HIGH :LOW);
-	  */
-	  delay(1);
-	}
-
-}
 
 void shiftOut16(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t val)
 {
@@ -696,34 +640,4 @@ void _shiftOutFast(uint8_t dataPin, uint8_t clockPin, uint8_t bitOrder, uint16_t
 
 
 
-
-void print_binary(uint32_t v, int num_places)
-{
-	uint32_t mask=0, n;
-
-    for (n=1; n<=num_places; n++)
-    {
-        mask = (mask << 1) | 0x0001;
-    }
-    v = v & mask;  // truncate v to specified number of places
-
-    while(num_places)
-    {
-
-        if (v & (0x0001 << num_places-1))
-        {
-             Serial.print("1");
-        }
-        else
-        {
-             Serial.print("0");
-        }
-
-        --num_places;
-        if(((num_places%4) == 0) && (num_places != 0))
-        {
-            Serial.print("_");
-        }
-    }
-}
 

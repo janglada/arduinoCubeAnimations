@@ -8,6 +8,13 @@
 #ifndef ANIMATIONS_H_
 #define ANIMATIONS_H_
 
+struct Anim {
+	void (*fn) (int);
+	int total_steps = 0;
+	int step = 0;
+
+};
+
 
 void layers(int step) {
 	step = step%6;
@@ -119,6 +126,7 @@ void randomCube(int step) {
 	m_layers[1] = random(ALL_VERTEX);
 	m_layers[2] = random(ALL_VERTEX);
 	m_layers[3] = random(ALL_VERTEX);
+	OCR1A = 512; //1024;//2048;
 }
 
 uint16_t cubelet(int vertex) {

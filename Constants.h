@@ -5,6 +5,8 @@
  *      Author: joan
  */
 #include "GraphObjects.h"
+#include <avr/interrupt.h>
+#include <avr/io.h>
 #ifndef CONSTANTS_H_
 #define CONSTANTS_H_
 

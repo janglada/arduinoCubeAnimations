@@ -4,7 +4,8 @@
  *  Created on: Jan 19, 2016
  *      Author: joan
  */
-
+#include <avr/interrupt.h>
+#include <avr/io.h>
 #ifndef GRAPHOBJECTS_H_
 #define GRAPHOBJECTS_H_
 
